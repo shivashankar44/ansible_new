@@ -1,0 +1,7 @@
+- name: play1
+  hosts: all
+  become: true
+  vars_files:
+    - vault.yml
+  roles:
+   - repo
