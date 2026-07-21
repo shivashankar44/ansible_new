@@ -13,7 +13,6 @@ pipeline {
         GIT_BRANCH = 'main'
         INVENTORY_FILE = 'iniventory.ini'
         PLAYBOOK_LAB5 = 'lab5.yaml'
-        PLAYBOOK_LAB6 = 'lab6.yaml'
     }
     
     stages {
@@ -46,22 +45,16 @@ pipeline {
                 sh '''
                     echo "Validating ${PLAYBOOK_LAB5}..."
                     ansible-playbook --syntax-check ${PLAYBOOK_LAB5}
-                    
-                    echo "Validating ${PLAYBOOK_LAB6}..."
-                    ansible-playbook --syntax-check ${PLAYBOOK_LAB6}
                 '''
             }
         }
         
-        stage('Lint Playbooks') {
+        stage('Lint Playbook') {
             steps {
                 echo '========== Running Ansible Lint =========='
                 sh '''
                     echo "Linting ${PLAYBOOK_LAB5}..."
                     ansible-lint ${PLAYBOOK_LAB5} || true
-                    
-                    echo "Linting ${PLAYBOOK_LAB6}..."
-                    ansible-lint ${PLAYBOOK_LAB6} || true
                 '''
             }
         }
@@ -88,15 +81,6 @@ pipeline {
             }
         }
         
-        stage('Dry Run - lab6') {
-            steps {
-                echo '========== Running lab6 playbook in check mode =========='
-                sh '''
-                    ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK_LAB6} --check -v
-                '''
-            }
-        }
-        
         stage('Execute lab5 Playbook') {
             when {
                 branch 'main'
@@ -110,20 +94,6 @@ pipeline {
                 '''
             }
         }
-        
-        stage('Execute lab6 Playbook') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo '========== Executing lab6 playbook =========='
-                sh '''
-                    ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK_LAB6} \
-                        --vault-password-file <(echo $ANSIBLE_VAULT_ID) \
-                        -v
-                '''
-            }
-        }
     }
     
     post {
@@ -132,12 +102,10 @@ pipeline {
             cleanWs()
         }
         success {
-            echo '✓ Ansible playbooks executed successfully!'
-            // Add email notification or webhook here if needed
+            echo '✓ lab5 playbook executed successfully!'
         }
         failure {
             echo '✗ Pipeline failed! Check logs for details.'
-            // Add email notification or webhook here if needed
         }
     }
 }
