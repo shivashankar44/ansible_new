@@ -1,111 +1,23 @@
 pipeline {
     agent any
     
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        timeout(time: 1, unit: 'HOURS')
-        timestamps()
-    }
-    
-    environment {
-        ANSIBLE_VAULT_ID = credentials('ansible-vault-password')
-        GIT_REPO = 'https://github.com/shivashankar44/ansible_new.git'
-        GIT_BRANCH = 'main'
-        INVENTORY_FILE = 'iniventory.ini'
-        PLAYBOOK_LAB5 = 'lab5.yaml'
-    }
-    
     stages {
         stage('Checkout') {
             steps {
-                echo '========== Checking out Ansible repository =========='
-                git branch: "${GIT_BRANCH}", 
-                    url: "${GIT_REPO}",
-                    credentialsId: 'github-credentials'
-                sh 'pwd && ls -la'
+                git branch: 'main', url: 'https://github.com/shivashankar44/ansible_new.git'
             }
         }
         
-        stage('Install Dependencies') {
+        stage('Install Ansible') {
             steps {
-                echo '========== Installing Ansible and dependencies =========='
-                sh '''
-                    sudo dnf -y install ansible-core
-                    pip install --upgrade pip
-                    pip install ansible-lint
-                    pip install yamllint
-                    ansible --version
-                '''
+                sh 'sudo dnf -y install ansible-core'
             }
         }
         
-        stage('Validate Syntax') {
+        stage('Run Ansible Playbook') {
             steps {
-                echo '========== Validating Ansible playbook syntax =========='
-                sh '''
-                    echo "Validating ${PLAYBOOK_LAB5}..."
-                    ansible-playbook --syntax-check ${PLAYBOOK_LAB5}
-                '''
+                sh 'ansible-playbook -i iniventory.ini lab5.yaml -v'
             }
-        }
-        
-        stage('Lint Playbook') {
-            steps {
-                echo '========== Running Ansible Lint =========='
-                sh '''
-                    echo "Linting ${PLAYBOOK_LAB5}..."
-                    ansible-lint ${PLAYBOOK_LAB5} || true
-                '''
-            }
-        }
-        
-        stage('Validate Inventory') {
-            steps {
-                echo '========== Validating Inventory =========='
-                sh '''
-                    echo "Listing inventory hosts..."
-                    ansible-inventory -i ${INVENTORY_FILE} --list
-                    
-                    echo "Testing connectivity to hosts..."
-                    ansible -i ${INVENTORY_FILE} all -m ping -v || true
-                '''
-            }
-        }
-        
-        stage('Dry Run - lab5') {
-            steps {
-                echo '========== Running lab5 playbook in check mode =========='
-                sh '''
-                    ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK_LAB5} --check -v
-                '''
-            }
-        }
-        
-        stage('Execute lab5 Playbook') {
-            when {
-                branch 'main'
-            }
-            steps {
-                echo '========== Executing lab5 playbook =========='
-                sh '''
-                    ansible-playbook -i ${INVENTORY_FILE} ${PLAYBOOK_LAB5} \
-                        --vault-password-file <(echo $ANSIBLE_VAULT_ID) \
-                        -v
-                '''
-            }
-        }
-    }
-    
-    post {
-        always {
-            echo '========== Pipeline Execution Summary =========='
-            cleanWs()
-        }
-        success {
-            echo '✓ lab5 playbook executed successfully!'
-        }
-        failure {
-            echo '✗ Pipeline failed! Check logs for details.'
         }
     }
 }
